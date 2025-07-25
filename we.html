@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Love Particles</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Georgia', serif;
+        }
+        #nameInput {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #nameInput h1 {
+            color: #ff69b4;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-family: 'Georgia', serif;
+            font-style: italic;
+        }
+        #nameInput input {
+            padding: 15px 25px;
+            font-size: 1.2em;
+            border: 2px solid #ff69b4;
+            border-radius: 25px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            outline: none;
+            text-align: center;
+            margin-bottom: 20px;
+            width: 300px;
+            font-family: 'Georgia', serif;
+        }
+        #nameInput input:focus {
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.8);
+        }
+        #nameInput button {
+            padding: 12px 30px;
+            font-size: 1.1em;
+            background: linear-gradient(45deg, #ff69b4, #ff1493);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Georgia', serif;
+            margin-bottom: 20px; /* Memberi jarak ke ikon */
+        }
+        #nameInput button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 105, 180, 0.8);
+        }
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            display: none;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 105, 180, 0.3);
+            border-top: 5px solid #ff69b4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #loading p {
+            color: #ff69b4;
+            font-size: 1.2em;
+            font-family: 'Georgia', serif;
+            font-style: italic;
+        }
+        canvas {
+            display: block;
+            background: #000;
+        }
+        #credit {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'Georgia', serif;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+
+        /* --- Gaya untuk Pop-up Banner --- */
+        #popupOverlay {
+            display: none; /* Awalnya disembunyikan */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Transparansi latar */
+            z-index: 1000; /* Di bawah popupBanner tapi di atas konten lain */
+        }
+
+        #popupBanner {
+            display: none; /* Awalnya disembunyikan */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border: 2px solid #ff69b4;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.5);
+            z-index: 1001; /* Di atas canvas, credit, dan overlay */
+            overflow: hidden;
+            font-family: 'Georgia', serif;
+            color: white;
+        }
+
+        #popupHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: rgba(255, 105, 180, 0.2);
+            border-bottom: 1px solid #ff69b4;
+        }
+
+        #popupTitle {
+            margin: 0;
+            font-size: 1.4em;
+            color: #ff69b4;
+            font-style: italic;
+        }
+
+        #closeButton {
+            background: none;
+            border: 2px solid #ff69b4;
+            color: #ff69b4;
+            font-size: 1.2em;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: not-allowed; /* Awalnya tidak bisa klik */
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        #closeButton.enabled {
+            cursor: pointer;
+            opacity: 1;
+        }
+
+        #closeButton.enabled:hover {
+            background-color: #ff69b4;
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        #popupContent {
+            padding: 20px;
+            text-align: center;
+        }
+
+        #popupContent h3 {
+            color: #87cefa;
+            margin-top: 0;
+        }
+
+        #popupContent p {
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+
+        #popupContent a {
+            color: #ff69b4;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        #popupContent a:hover {
+            text-decoration: underline;
+        }
+
+        #popupTimer {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        /* --- Akhir Gaya untuk Pop-up Banner --- */
+
+        /* --- Gaya untuk Ikon Instagram --- */
+        #instagramLink {
+            margin-top: 10px; /* Jarak dari tombol */
+            opacity: 0.7; /* Tidak terlalu mencolok */
+            transition: opacity 0.3s ease, transform 0.2s ease;
+        }
+
+        #instagramIcon {
+            width: 24px; /* Ukuran kecil */
+            height: 24px;
+            fill: #C13584; /* Warna ikon Instagram */
+        }
+
+        #instagramLink:hover {
+            opacity: 1; /* Lebih terlihat saat hover */
+            transform: scale(1.1); /* Sedikit membesar saat hover */
+        }
+        /* --- Akhir Gaya untuk Ikon Instagram --- */
+    </style>
+</head>
+<body>
+    <div id="nameInput">
+        <h1>Love Particles</h1>
+        <input type="text" id="userName" placeholder="Enter your name..." autocomplete="off">
+        <button onclick="startAnimation()">Confirm Name</button>
+
+        <!-- --- Ikon Instagram di Menu Awal --- -->
+        <a id="instagramLink" href="https://www.instagram.com/dlzkayyk1ll4s.exe?igsh=eW96M3d0bGxqdm5k" target="_blank" aria-label="Visit my Instagram">
+            <svg id="instagramIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+        </a>
+        <!-- --- Akhir Ikon Instagram --- -->
+    </div>
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div id="credit">Created by Afdhal - 2025</div>
+
+    <!-- --- Overlay dan Pop-up Banner --- -->
+    <div id="popupOverlay"></div>
+    <div id="popupBanner">
+        <div id="popupHeader">
+            <h2 id="popupTitle">Special Offer!</h2>
+            <button id="closeButton" title="Close">X</button>
+        </div>
+        <div id="popupContent">
+            <h3>Need a Custom Project?</h3>
+            <p>Get in touch for amazing web animations and designs!</p>
+            <p>Contact: <a href="mailto:labdal2022@gmail.com">labdal2022@gmail.com</a></p>
+            <div id="popupTimer">Closing in 15 seconds...</div>
+        </div>
+    </div>
+    <!-- --- Akhir Overlay dan Pop-up Banner --- -->
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let userName = "Love";
+
+        // Set ukuran canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Particle class
+        class Particle {
+            constructor(x, y, targetX, targetY, isHeartParticle = false) {
+                this.x = x;
+                this.y = y;
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.size = Math.random() * 8 + 6;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+                this.color = `hsl(${Math.random() * 60 + 300}, 100%, ${Math.random() * 40 + 60}%)`;
+                this.alpha = Math.random() * 0.8 + 0.2;
+                this.isHeartParticle = isHeartParticle;
+                this.reachedTarget = false;
+                this.windAffected = false;
+                this.windForceX = 0;
+                this.windForceY = 0;
+                this.windDuration = 0;
+                this.windTimer = 0;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+            }
+            update() {
+                if (this.windAffected) {
+                    // Partikel terkena angin
+                    this.windTimer++;
+                    this.x += this.windForceX;
+                    this.y += this.windForceY;
+                    // Kurangi kecepatan angin
+                    this.windForceX *= 0.95;
+                    this.windForceY *= 0.95;
+                    // Rotasi saat terkena angin
+                    this.rotation += this.rotationSpeed * 2;
+                    if (this.windTimer >= this.windDuration) {
+                        this.windAffected = false;
+                    }
+                } else if (this.isHeartParticle && !this.reachedTarget) {
+                    // Bergerak menuju target posisi
+                    const dx = this.targetX - this.x;
+                    const dy = this.targetY - this.y;
+                    this.x += dx * 0.08;
+                    this.y += dy * 0.08;
+                    // Cek jika sudah sampai
+                    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+                        this.reachedTarget = true;
+                        this.x = this.targetX;
+                        this.y = this.targetY;
+                    }
+                } else if (this.isHeartParticle && this.reachedTarget) {
+                    // Getaran halus di posisi target
+                    this.x += Math.sin(Date.now() * 0.002) * 0.2;
+                    this.y += Math.cos(Date.now() * 0.002) * 0.2;
+                    // Rotasi perlahan
+                    this.rotation += this.rotationSpeed;
+                } else {
+                    // Partikel bebas
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    this.rotation += this.rotationSpeed;
+                    // Bounce dari tepi
+                    if (this.x <= 0 || this.x >= canvas.width) {
+                        this.speedX *= -0.8;
+                    }
+                    if (this.y <= 0 || this.y >= canvas.height) {
+                        this.speedY *= -0.8;
+                    }
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.font = `bold italic ${this.size}px Georgia, serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.fillText(userName, 0, 0);
+                ctx.restore();
+            }
+            applyWind(forceX, forceY, duration) {
+                this.windAffected = true;
+                this.windTimer = 0;
+                this.windDuration = duration;
+                this.windForceX = forceX;
+                this.windForceY = forceY;
+                this.reachedTarget = false;
+            }
+        }
+
+        // Generate titik-titik dalam bentuk hati
+        function generateHeartShape(centerX, centerY, scale, numPoints) {
+            const points = [];
+            for (let i = 0; i < numPoints; i++) {
+                const t = (i / numPoints) * Math.PI * 2;
+                // Formula hati matematika
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+                points.push({
+                    x: centerX + x * scale,
+                    y: centerY + y * scale
+                });
+            }
+            return points;
+        }
+
+        // Buat sistem partikel
+        let particles = [];
+        let heartPoints = [];
+        function init() {
+            particles = [];
+            // Generate titik-titik hati dengan ukuran lebih kecil
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = Math.min(canvas.width, canvas.height) * 0.025;
+            const numPoints = 100;
+            heartPoints = generateHeartShape(centerX, centerY, scale, numPoints);
+            // Buat partikel untuk formasi hati
+            for (let i = 0; i < heartPoints.length; i++) {
+                const point = heartPoints[i];
+                // Mulai dari posisi acak, bergerak ke posisi hati
+                const startX = Math.random() * canvas.width;
+                const startY = Math.random() * canvas.height;
+                particles.push(new Particle(
+                    startX, startY,
+                    point.x, point.y,
+                    true
+                ));
+            }
+            // Buat partikel bebas
+            const freeParticles = 40;
+            for (let i = 0; i < freeParticles; i++) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    0, 0,
+                    false
+                ));
+            }
+        }
+
+        // Terapkan efek angin
+        function applyRandomWind() {
+            if (Math.random() < 0.018) {
+                const forceX = (Math.random() - 0.5) * 5;
+                const forceY = (Math.random() - 0.5) * 5;
+                const duration = 15 + Math.random() * 15;
+                // Pilih beberapa partikel dari formasi hati secara acak
+                particles.forEach(particle => {
+                    if (particle.isHeartParticle && particle.reachedTarget && Math.random() < 0.25) {
+                        particle.applyWind(forceX, forceY, duration);
+                    }
+                });
+            }
+        }
+
+        // Animation loop
+        function animate() {
+            // Clear canvas dengan efek fade
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Update dan draw particles
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            // Terapkan efek angin
+            applyRandomWind();
+            requestAnimationFrame(animate);
+        }
+
+        // Function untuk memulai animasi
+        function startAnimation() {
+            const nameInput = document.getElementById('userName').value.trim();
+            if (nameInput === '') {
+                alert('Please enter your name first!');
+                return;
+            }
+            userName = nameInput;
+            // Tampilkan loading
+            document.getElementById('nameInput').style.display = 'none';
+            document.getElementById('loading').style.display = 'flex';
+            // Delay sebentar untuk efek loading
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                init();
+                animate();
+                // --- Tampilkan Pop-up setelah animasi dimulai ---
+                showPopupBanner();
+                // --- Akhir tampilkan Pop-up ---
+            }, 2000);
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('userName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startAnimation();
+            }
+        });
+
+        // Reset saat window diresize
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            if (particles.length > 0) {
+                init();
+            }
+        });
+
+        // --- Script untuk Pop-up Banner ---
+        function showPopupBanner() {
+            // Cek apakah pop-up sudah ditampilkan dalam sesi ini
+            const hasShownPopup = sessionStorage.getItem('popupShownHehe');
+
+            if (!hasShownPopup) {
+                const popupBanner = document.getElementById('popupBanner');
+                const popupOverlay = document.getElementById('popupOverlay');
+                const closeButton = document.getElementById('closeButton');
+                const popupTimer = document.getElementById('popupTimer');
+
+                // Tandai bahwa pop-up sudah ditampilkan dalam sesi ini
+                sessionStorage.setItem('popupShownHehe', 'true');
+
+                // Tampilkan overlay dan pop-up
+                popupOverlay.style.display = 'block';
+                popupBanner.style.display = 'block';
+
+                // Mulai hitung mundur 15 detik untuk tombol tutup
+                let countdown = 15;
+                popupTimer.textContent = `Closing in ${countdown} seconds...`;
+                closeButton.classList.remove('enabled'); // Pastikan tombol disabled
+                closeButton.disabled = true;
+
+                const countdownInterval = setInterval(function() {
+                    countdown--;
+                    popupTimer.textContent = `Closing in ${countdown} seconds...`;
+
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        // Aktifkan tombol tutup setelah 15 detik
+                        closeButton.classList.add('enabled');
+                        closeButton.disabled = false;
+                        popupTimer.textContent = "You can now close this banner.";
+                    }
+                }, 1000); // Update setiap 1 detik
+
+                // Fungsi untuk menutup pop-up
+                function closePopup() {
+                    popupBanner.style.display = 'none';
+                    popupOverlay.style.display = 'none';
+                    clearInterval(countdownInterval); // Hentikan interval jika tombol diklik cepat
+                }
+
+                // Event listener untuk tombol tutup
+                closeButton.addEventListener('click', closePopup);
+
+                // Optional: Event listener untuk overlay (klik luar untuk tutup)
+                // popupOverlay.addEventListener('click', closePopup);
+            }
+        }
+        // --- Akhir Script untuk Pop-up Banner ---
+    </script>
+</body>
+</html>
